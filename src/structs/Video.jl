@@ -40,11 +40,7 @@ function Video(width, height)
     Drawing()
     video =
         Video(width, height, AbstractObject[], AbstractObject[], Int[], Dict{Symbol,Any}())
-    if isempty(CURRENT_VIDEO)
-        push!(CURRENT_VIDEO, video)
-    else
-        CURRENT_VIDEO[1] = video
-    end
+    set_constant!(CURRENT_VIDEO, video)
     empty!(CURRENT_OBJECT)
     return video
 end

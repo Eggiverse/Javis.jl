@@ -87,12 +87,14 @@ end
     # @test test_local.processes isa Vector{Base.Process}
 
     cancel_stream()
-    @test_throws ProcessFailedException run(
-        pipeline(
-            `ps aux`,
-            pipeline(`grep ffmpeg`, pipeline(`grep stream_loop`, `awk '{print $2}'`)),
-        ),
-    )
+    @static if !Sys.iswindows()
+        @test_throws ProcessFailedException run(
+            pipeline(
+                `ps aux`,
+                pipeline(`grep ffmpeg`, pipeline(`grep stream_loop`, `awk '{print $2}'`)),
+            ),
+        )
+    end
 
     vid = Video(500, 500)
     back = Background(1:100, ground)

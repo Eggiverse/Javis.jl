@@ -37,9 +37,16 @@ const CURRENT_OBJECT = Array{Object,1}()
 const PREVIOUS_OBJECT = Array{Object,1}()
 const CURRENT_OBJECT_ACTION_TYPE = Array{Symbol,1}()
 
-Object(func::Function, args...; kwargs...) = Object(:same, func, args...; kwargs...)
+Object(video::Video, func::Function, args...; kwargs...) = Object(video, :same, func, args...; kwargs...)
 
-Object(frames, func::Function; kwargs...) = Object(frames, func, O; kwargs...)
+Object(video, frames, func::Function; kwargs...) = Object(video, frames, func, O; kwargs...)
+
+function Object(args...; kwargs...)
+    if isempty(CURRENT_VIDEO)
+        throw(ErrorException("A `Video` must be defined before an `Object`"))
+    end
+    Object(CURRENT_VIDEO[1], args...; kwargs...) 
+end
 
 """
     Object([frames], func::Function, [start_pos]; kwargs...)
@@ -72,17 +79,14 @@ Here the [`Background`](@ref) uses the named way of defining the function wherea
 the circle object is defined in the anonymous function `(args...)->circle(O, 50, :fill)`.
 It basically depends whether you want to have a simple Luxor object or something more complex.
 """
-function Object(frames, func::Function, start_pos::Union{Object,Point}; kwargs...)
-    if isempty(CURRENT_VIDEO)
-        throw(ErrorException("A `Video` must be defined before an `Object`"))
-    end
+function Object(video::Video, frames, func::Function, start_pos::Union{Object,Point}; push_to_layer=PUSH_TO_LAYER[1], kwargs...)
 
-    CURRENT_VIDEO[1].defs[:last_frames] = frames
+    video.defs[:last_frames] = frames
     opts = Dict(kwargs...)
 
     if get(opts, :in_global_layer, false) && frames isa UnitRange
-        CURRENT_VIDEO[1].background_frames =
-            union(CURRENT_VIDEO[1].background_frames, frames)
+        video.background_frames =
+            union(video.background_frames, frames)
     end
 
     object = Object(
@@ -101,10 +105,11 @@ function Object(frames, func::Function, start_pos::Union{Object,Point}; kwargs..
     push!(object.opts, :original_func => func)
 
     # should the object be pushedsp to the video or a layer
-    if PUSH_TO_LAYER[1]
-        push!(CURRENT_LAYER[1].layer_objects, object)
+    if push_to_layer
+        current_layer = video.layers[end]
+        push!(current_layer.layer_objects, object)
     else
-        push!(CURRENT_VIDEO[1].objects, object)
+        push!(video.objects, object)
     end
 
     return object
@@ -194,9 +199,13 @@ render(video; pathname="test.gif")
 This draws a white circle on a black background as `sethue` is defined for the global frame.
 """
 function Background(frames, func::Function, args...; kwargs...)
-    if PUSH_TO_LAYER[1]
-        Object(frames, func, args...; in_local_layer = true, kwargs...)
+    Background(CURRENT_VIDEO[1], frames, func, args...; kwargs...)
+end
+
+function Background(video::Video, frames, func::Function, args...; push_to_layer::Bool=PUSH_TO_LAYER[1], kwargs...)
+    if push_to_layer
+        Object(video, frames, func, args...; in_local_layer = true, kwargs...)
     else
-        Object(frames, func, args...; in_global_layer = true, kwargs...)
+        Object(video, frames, func, args...; in_global_layer = true, kwargs...)
     end
 end

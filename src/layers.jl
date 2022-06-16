@@ -116,8 +116,20 @@ function to_layer_m(
     position = Point(0, 0),
     transparent = QuoteNode(:transparent),
 )
+    to_layer_m(:(Javis.CURRENT_VIDEO[1]), frames, body; width, height, position, transparent)
+end
+
+function to_layer_m(
+    video,
+    frames,
+    body;
+    width = nothing, # will be set to CURRENT_VIDEO[1].width inside Javis.Layer
+    height = nothing,
+    position = Point(0, 0),
+    transparent = QuoteNode(:transparent),
+)        
     quote
-        layer = Javis.Layer($frames, $width, $height, $position)
+        layer = Javis.Layer($video, $frames, $width, $height, $position)
 
         if $transparent == :transparent
             push!(layer.opts, :transparent => true)
@@ -127,14 +139,10 @@ function to_layer_m(
         # this is overriden by passing another ground to the layer explicity in the begin end block
         # if no background is needed :transparent flag should be passed
         video_backgrounds =
-            filter(x -> get(x.opts, :in_global_layer, false), $CURRENT_VIDEO[1].objects)
+            filter(x -> get(x.opts, :in_global_layer, false), $video.objects)
         push!(layer.layer_objects, video_backgrounds...)
 
-        if isempty(Javis.CURRENT_LAYER)
-            push!(Javis.CURRENT_LAYER, layer)
-        else
-            Javis.CURRENT_LAYER[1] = layer
-        end
+        Javis.set_constant!(Javis.CURRENT_LAYER, layer)
         Javis.PUSH_TO_LAYER[1] = true
         $body
         Javis.PUSH_TO_LAYER[1] = false
@@ -219,10 +227,14 @@ end
 Removes an object or a list of objects from the main video.
 This is a helper method for the [`to_layer!`](@ref) method and is supposed to be used internally
 """
-function remove_from_video(object::Object)
-    filter!(x -> x != object, CURRENT_VIDEO[1].objects)
+function remove_from_video(object::Union{Object, Vector{Object}})
+    remove_from_video(CURRENT_VIDEO[1], object)
 end
 
-function remove_from_video(objects::Vector{Object})
-    filter!(x -> x ∉ objects, CURRENT_VIDEO[1].objects)
+function remove_from_video(video::Video, object::Object)
+    filter!(x -> x != object, video.objects)
+end
+
+function remove_from_video(video::Video, objects::Vector{Object})
+    filter!(x -> x ∉ objects, video.objects)
 end

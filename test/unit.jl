@@ -9,7 +9,7 @@
 
         EXCLUDE_FILES = [".keep"]
         for f in readdir("images")
-            !(f in EXCLUDE_FILES) && rm("images/$f")
+            !(f in EXCLUDE_FILES) && rm("images/$f", recursive=true)
         end
         @test length(readdir("images")) == length(EXCLUDE_FILES)
     end

@@ -24,6 +24,14 @@ abstract type AbstractAction end
 abstract type AbstractObject end
 abstract type AbstractTransition end
 
+function set_constant!(constant::Vector{T}, val::T) where T
+    if isempty(constant)
+        push!(constant, val)
+    else
+        constant[1] = val
+    end
+end
+
 include("structs/Video.jl")
 include("structs/Easing.jl")
 include("structs/RFrames.jl")
@@ -139,7 +147,7 @@ end
 
 """
 function preprocess_frames!(video::Video)
-    return preprocess_frames!([video.objects..., flatten(video.layers)...])
+    return preprocess_frames!(video, [video.objects..., flatten(video.layers)...])
 end
 
 """
@@ -158,6 +166,10 @@ the actual frames for objects and actions.
 Shows a warning if some frames don't have a background.
 """
 function preprocess_frames!(objects::Vector{<:AbstractObject})
+    preprocess_frames!(CURRENT_VIDEO[1], objects)
+end
+
+function preprocess_frames!(video::Video, objects::Vector{<:AbstractObject})
     compute_frames!(objects)
 
     for (i, object) in enumerate(objects)
@@ -170,9 +182,9 @@ function preprocess_frames!(objects::Vector{<:AbstractObject})
         append!(frames, collect(get_frames(object)))
     end
     frames = unique(frames)
-    if !(frames ⊆ CURRENT_VIDEO[1].background_frames)
+    if !(frames ⊆ video.background_frames)
         @warn(
-            "Some of the frames don't have a background. In this case: $(setdiff(frames, CURRENT_VIDEO[1].background_frames)))"
+            "Some of the frames don't have a background. In this case: $(setdiff(frames, video.background_frames)))"
         )
     end
 
@@ -571,11 +583,7 @@ function get_javis_frame(video, objects, frame; layers = Layer[])
         # render each layer's objects and store the layer's Drawing as an image matrix
         for layer in layers
             push!(starting_positions, layer.position)
-            if isempty(Javis.CURRENT_LAYER)
-                push!(Javis.CURRENT_LAYER, layer)
-            else
-                Javis.CURRENT_LAYER[1] = layer
-            end
+            set_constant!(Javis.CURRENT_LAYER, layer)
             if frame in get_frames(layer)
                 mat = get_layer_frame(video, layer, frame)
                 layer.image_matrix = mat

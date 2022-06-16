@@ -94,6 +94,14 @@ function get_angles(p)
 end
 
 function get_similarity(shapeA::Shape, shapeB::Shape)
+    get_similarity(CURRENT_VIDEO[1], shapeA, shapeB)
+end
+
+function get_similarity(video::Video, shapeA::Shape, shapeB::Shape)
+    get_similarity(video.width, video.height, shapeA, shapeB)
+end
+
+function get_similarity(video_width, video_height, shapeA::Shape, shapeB::Shape)
     if isempty(shapeA) || isempty(shapeB)
         return 0.0
     end
@@ -173,9 +181,9 @@ function get_similarity(shapeA::Shape, shapeB::Shape)
     # difference in movement
     pointsA, pointsB = match_num_points(shapeA.points, shapeB.points)
     smallest_i, smallest_distance = compute_shortest_morphing_dist(pointsA, pointsB)
-    video = CURRENT_VIDEO[1]
+
     smallest_distance /= length(pointsA)
-    perc = clamp(1 - smallest_distance / sqrt(video.width^2 + video.height^2), 0, 1)
+    perc = clamp(1 - smallest_distance / sqrt(video_width^2 + video_height^2), 0, 1)
     score += perc * score_centered_point_diff
 
     return score

@@ -35,7 +35,6 @@ The current layer can be accessed using CURRENT_LAYER[1]
 """
 const CURRENT_LAYER = Array{Layer,1}()
 
-# for width, height and position defaults are defined in the to_layer_m function
 function Layer(
     frames,
     width,
@@ -48,11 +47,40 @@ function Layer(
     mat = nothing,
     layer_cache::LayerCache = LayerCache(),
 )
+    Layer(
+        CURRENT_VIDEO[1],
+        frames,
+        width,
+        height,
+        position;
+        layer_objects,
+        actions,
+        setting,
+        misc,
+        mat,
+        layer_cache,
+    )
+end
+
+# for width, height and position defaults are defined in the to_layer_m function
+function Layer(
+    video::Video,
+    frames,
+    width,
+    height,
+    position::Point;
+    layer_objects::Vector{AbstractObject} = AbstractObject[],
+    actions::Vector{AbstractAction} = AbstractAction[],
+    setting::LayerSetting = LayerSetting(),
+    misc::Dict{Symbol,Any} = Dict{Symbol,Any}(),
+    mat = nothing,
+    layer_cache::LayerCache = LayerCache(),
+)
     if width === nothing
-        width = CURRENT_VIDEO[1].width
+        width = video.width
     end
     if height === nothing
-        height = CURRENT_VIDEO[1].height
+        height = video.height
     end
 
     layer = Layer(
@@ -68,12 +96,8 @@ function Layer(
         layer_cache,
     )
 
-    if isempty(CURRENT_LAYER)
-        push!(CURRENT_LAYER, layer)
-    else
-        CURRENT_LAYER[1] = layer
-    end
-    push!(CURRENT_VIDEO[1].layers, layer)
+    set_constant!(CURRENT_LAYER, layer)
+    push!(video.layers, layer)
 
     return layer
 end
